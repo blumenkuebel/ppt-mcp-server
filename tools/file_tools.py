@@ -1,16 +1,18 @@
 """
 File upload/download HTTP endpoints for PowerPoint MCP Server.
 
-Registers two custom HTTP routes on the FastMCP app (outside MCP protocol):
+Registers custom HTTP routes on the FastMCP app (outside MCP protocol):
   POST /upload          – multipart/form-data, field "file", optional field "filename"
   GET  /download/<name> – streams the file back as application/octet-stream
+  GET  /files           – lists available PPTX files
 
-Usage from Claude (via Bash/curl):
-  # Upload
-  curl -F "file=@/path/to/deck.pptx" http://192.168.55.15:8001/upload
+Optional API key protection via environment variable:
+  MCP_API_KEY=secret ./start_server.sh
 
-  # Download
-  curl http://192.168.55.15:8001/download/deck.pptx -o deck.pptx
+  curl -H "X-API-Key: secret" -F "file=@deck.pptx" http://192.168.55.15:8001/upload
+  curl -H "X-API-Key: secret" http://192.168.55.15:8001/download/deck.pptx -o deck.pptx
+
+If MCP_API_KEY is not set, the endpoints are unprotected.
 """
 import os
 from mcp.server.fastmcp import FastMCP
@@ -20,11 +22,22 @@ from starlette.responses import JSONResponse, FileResponse, Response
 PPT_FILES_PATH = "/app/pptx_files"
 
 
+def _check_api_key(request: Request) -> bool:
+    """Return True if the request is authorized (or no key is configured)."""
+    required = os.environ.get("MCP_API_KEY", "")
+    if not required:
+        return True
+    return request.headers.get("X-API-Key", "") == required
+
+
 def register_file_routes(app: FastMCP):
-    """Register /upload and /download HTTP routes on the FastMCP app."""
+    """Register /upload, /download, and /files HTTP routes on the FastMCP app."""
 
     @app.custom_route("/upload", methods=["POST"])
     async def upload(request: Request) -> Response:
+        if not _check_api_key(request):
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
         form = await request.form()
         file = form.get("file")
         if file is None:
@@ -51,6 +64,9 @@ def register_file_routes(app: FastMCP):
 
     @app.custom_route("/download/{filename}", methods=["GET"])
     async def download(request: Request) -> Response:
+        if not _check_api_key(request):
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
         filename = request.path_params["filename"]
         safe_name = os.path.basename(filename)
         file_path = os.path.join(PPT_FILES_PATH, safe_name)
@@ -66,6 +82,9 @@ def register_file_routes(app: FastMCP):
 
     @app.custom_route("/files", methods=["GET"])
     async def list_files(request: Request) -> Response:
+        if not _check_api_key(request):
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
         os.makedirs(PPT_FILES_PATH, exist_ok=True)
         files = [
             {"filename": f, "size_bytes": os.path.getsize(os.path.join(PPT_FILES_PATH, f))}

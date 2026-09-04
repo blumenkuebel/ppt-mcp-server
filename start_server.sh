@@ -7,6 +7,10 @@
 #   ./start_server.sh            # Standard-Port 8001
 #   ./start_server.sh 8002       # eigener Port
 #
+# Optionaler API-Key-Schutz für /upload, /download, /files:
+#   MCP_API_KEY=geheim ./start_server.sh
+#   curl -H "X-API-Key: geheim" -F "file=@deck.pptx" http://host:8001/upload
+#
 set -euo pipefail
 
 # In das Verzeichnis dieses Skripts wechseln
