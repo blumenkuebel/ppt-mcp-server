@@ -1,0 +1,15 @@
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+*.md
+mcp_all_tools_templates_effects_demo.pptx
+mcp_config_sample.json
+mcp-config.json
+smithery.yaml
+setup_mcp.py
+Dockerfile
+start_server.sh
