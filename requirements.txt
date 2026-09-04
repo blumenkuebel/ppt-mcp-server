@@ -2,4 +2,3 @@ mcp[cli]<2
 python-pptx
 Pillow
 fonttools
-httpx

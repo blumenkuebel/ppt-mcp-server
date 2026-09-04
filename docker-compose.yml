@@ -13,7 +13,7 @@ services:
     environment:
       MCP_PORT: "8001"
       PPT_TEMPLATE_PATH: /app/templates
-      MCP_API_KEY: ""  # set your secret key here, or pass via environment
+      MCP_API_KEY: "bd59182beac12da16f09014681cc72730ee27adb4b4a83f0142c1818ae0e2844"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request, urllib.error;\ntry: urllib.request.urlopen('http://localhost:8001/mcp')\nexcept urllib.error.HTTPError as e: exit(0 if e.code==406 else 1)\nexcept: exit(1)"]
