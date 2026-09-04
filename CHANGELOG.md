@@ -19,15 +19,11 @@ by default, which rejected connections from non-localhost Host headers (HTTP 421
 Added `transport_security = TransportSecuritySettings(enable_dns_rebinding_protection=False)`
 so the server can be reached via its Docker/network IP address.
 
-#### File upload/download tools (`tools/file_tools.py`)
-Two new MCP tools to transfer PPTX files between client and server without requiring
-shared filesystem access:
+#### File upload/download HTTP endpoints (`tools/file_tools.py`)
+Three custom HTTP routes for transferring PPTX files without shared filesystem access:
 
-- **`upload_pptx(filename, content_base64)`** – saves a base64-encoded PPTX file to
-  `/app/pptx_files/` on the server; returns the `file_path` to use with `open_presentation`.
-- **`download_pptx(file_path)`** – reads a PPTX file from the server and returns it
-  as a base64-encoded string so the client can save it locally.
+- **`POST /upload`** – multipart/form-data upload (`curl -F "file=@deck.pptx" http://host:8001/upload`)
+- **`GET  /download/<filename>`** – streams the file back as octet-stream
+- **`GET  /files`** – lists all available PPTX files on the server
 
-This mirrors the deployment topology: the server runs in Docker with
-`/mnt/dockershare/powerpoint` mounted at `/app/pptx_files`, and the client (Claude)
-has no direct access to that path.
+The returned `file_path` from `/upload` can be passed directly to `open_presentation`.

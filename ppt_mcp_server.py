@@ -20,7 +20,7 @@ from tools import (
     register_connector_tools,
     register_master_tools,
     register_transition_tools,
-    register_file_tools,
+    register_file_routes,
 )
 
 # Initialize the FastMCP server
@@ -325,7 +325,7 @@ register_transition_tools(
     is_valid_rgb
 )
 
-register_file_tools(app)
+register_file_routes(app)
 
 
 # ---- Additional Utility Tools ----

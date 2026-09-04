@@ -1,71 +1,75 @@
 """
-File upload/download tools for PowerPoint MCP Server.
-Allows transferring PPTX files via base64-encoded content.
+File upload/download HTTP endpoints for PowerPoint MCP Server.
+
+Registers two custom HTTP routes on the FastMCP app (outside MCP protocol):
+  POST /upload          – multipart/form-data, field "file", optional field "filename"
+  GET  /download/<name> – streams the file back as application/octet-stream
+
+Usage from Claude (via Bash/curl):
+  # Upload
+  curl -F "file=@/path/to/deck.pptx" http://192.168.55.15:8001/upload
+
+  # Download
+  curl http://192.168.55.15:8001/download/deck.pptx -o deck.pptx
 """
-from typing import Dict, Optional
 import os
-import base64
 from mcp.server.fastmcp import FastMCP
-from mcp.types import ToolAnnotations
+from starlette.requests import Request
+from starlette.responses import JSONResponse, FileResponse, Response
 
 PPT_FILES_PATH = "/app/pptx_files"
 
 
-def register_file_tools(app: FastMCP):
-    """Register file upload/download tools with the FastMCP app."""
+def register_file_routes(app: FastMCP):
+    """Register /upload and /download HTTP routes on the FastMCP app."""
 
-    @app.tool(
-        annotations=ToolAnnotations(title="Upload PPTX File"),
-    )
-    def upload_pptx(filename: str, content_base64: str) -> Dict:
-        """Upload a PPTX file to the server by providing its base64-encoded content.
+    @app.custom_route("/upload", methods=["POST"])
+    async def upload(request: Request) -> Response:
+        form = await request.form()
+        file = form.get("file")
+        if file is None:
+            return JSONResponse({"error": "Missing 'file' field"}, status_code=400)
 
-        Use this to transfer a file from the client to the server before opening it.
-        The file is saved under the server's files directory and can then be opened
-        with open_presentation using the returned file_path.
-        """
-        if not filename.endswith(".pptx"):
-            filename += ".pptx"
-
-        # Prevent directory traversal
+        filename = form.get("filename") or file.filename or "upload.pptx"
+        if not str(filename).endswith(".pptx"):
+            filename = str(filename) + ".pptx"
         safe_name = os.path.basename(filename)
-        dest = os.path.join(PPT_FILES_PATH, safe_name)
+
         os.makedirs(PPT_FILES_PATH, exist_ok=True)
+        dest = os.path.join(PPT_FILES_PATH, safe_name)
 
-        try:
-            data = base64.b64decode(content_base64)
-        except Exception as e:
-            return {"error": f"Invalid base64 content: {e}"}
-
+        data = await file.read()
         with open(dest, "wb") as f:
             f.write(data)
 
-        return {
-            "message": f"File uploaded successfully.",
+        return JSONResponse({
+            "message": "File uploaded successfully.",
             "file_path": dest,
+            "filename": safe_name,
             "size_bytes": len(data),
-        }
+        })
 
-    @app.tool(
-        annotations=ToolAnnotations(title="Download PPTX File", readOnlyHint=True),
-    )
-    def download_pptx(file_path: str) -> Dict:
-        """Download a PPTX file from the server as base64-encoded content.
-
-        Use this to retrieve a file after creating or modifying a presentation,
-        so the client can save it locally.
-        """
-        if not os.path.isabs(file_path):
-            file_path = os.path.join(PPT_FILES_PATH, file_path)
+    @app.custom_route("/download/{filename}", methods=["GET"])
+    async def download(request: Request) -> Response:
+        filename = request.path_params["filename"]
+        safe_name = os.path.basename(filename)
+        file_path = os.path.join(PPT_FILES_PATH, safe_name)
 
         if not os.path.exists(file_path):
-            return {"error": f"File not found: {file_path}"}
+            return JSONResponse({"error": f"File not found: {safe_name}"}, status_code=404)
 
-        with open(file_path, "rb") as f:
-            data = f.read()
+        return FileResponse(
+            file_path,
+            media_type="application/octet-stream",
+            filename=safe_name,
+        )
 
-        return {
-            "filename": os.path.basename(file_path),
-            "content_base64": base64.b64encode(data).decode("utf-8"),
-            "size_bytes": len(data),
-        }
+    @app.custom_route("/files", methods=["GET"])
+    async def list_files(request: Request) -> Response:
+        os.makedirs(PPT_FILES_PATH, exist_ok=True)
+        files = [
+            {"filename": f, "size_bytes": os.path.getsize(os.path.join(PPT_FILES_PATH, f))}
+            for f in sorted(os.listdir(PPT_FILES_PATH))
+            if f.endswith(".pptx")
+        ]
+        return JSONResponse({"files": files})

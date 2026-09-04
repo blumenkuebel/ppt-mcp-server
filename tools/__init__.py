@@ -13,7 +13,7 @@ from .chart_tools import register_chart_tools
 from .connector_tools import register_connector_tools
 from .master_tools import register_master_tools
 from .transition_tools import register_transition_tools
-from .file_tools import register_file_tools
+from .file_tools import register_file_routes
 
 __all__ = [
     "register_presentation_tools",
@@ -26,5 +26,5 @@ __all__ = [
     "register_connector_tools",
     "register_master_tools",
     "register_transition_tools",
-    "register_file_tools",
+    "register_file_routes",
 ]
