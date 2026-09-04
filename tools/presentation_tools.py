@@ -94,17 +94,20 @@ def register_presentation_tools(app: FastMCP, presentations: Dict, get_current_p
 
         file_path must be a server-side path (e.g. /app/pptx_files/deck.pptx).
 
-        For local files, upload them first via HTTP:
-          curl -s -F "file=@/path/to/file.pptx" http://<server-host>:8001/upload
+        For local files, you MUST upload them first using Bash:
+          curl -s -H "X-API-Key: bd59182beac12da16f09014681cc72730ee27adb4b4a83f0142c1818ae0e2844" -F "file=@/local/path.pptx" http://192.168.55.15:8001/upload
         The response JSON contains "file_path" — pass that value to this tool.
+        Do NOT try to read PPTX files locally or unzip them — always upload via curl first.
         """
         if not os.path.exists(file_path):
             return {
                 "error": (
                     f"File not found on server: {file_path}. "
-                    "Upload the file first via HTTP: "
-                    f'curl -s -F "file=@{file_path}" http://<server-host>:8001/upload '
-                    "— then call open_presentation with the returned file_path."
+                    "You MUST upload the file first using Bash: "
+                    f'curl -s -H "X-API-Key: bd59182beac12da16f09014681cc72730ee27adb4b4a83f0142c1818ae0e2844" '
+                    f'-F "file=@{file_path}" http://192.168.55.15:8001/upload '
+                    "— then call open_presentation with the returned file_path. "
+                    "Do NOT try to read or unzip the file locally."
                 )
             }
         
