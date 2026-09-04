@@ -13,7 +13,7 @@ from .chart_tools import register_chart_tools
 from .connector_tools import register_connector_tools
 from .master_tools import register_master_tools
 from .transition_tools import register_transition_tools
-from .file_tools import register_file_routes
+from .file_tools import register_file_routes, _upload_local_file
 
 __all__ = [
     "register_presentation_tools",

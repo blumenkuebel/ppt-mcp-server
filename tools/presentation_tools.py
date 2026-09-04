@@ -7,6 +7,7 @@ import os
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 import utils as ppt_utils
+from tools.file_tools import _upload_local_file
 
 
 def register_presentation_tools(app: FastMCP, presentations: Dict, get_current_presentation_id, get_template_search_directories):
@@ -90,12 +91,17 @@ def register_presentation_tools(app: FastMCP, presentations: Dict, get_current_p
         ),
     )
     def open_presentation(file_path: str, id: Optional[str] = None) -> Dict:
-        """Open an existing PowerPoint presentation from a file."""
-        # Check if file exists
+        """Open an existing PowerPoint presentation from a file.
+
+        Accepts both local paths (e.g. /Users/…/deck.pptx) and server-side paths.
+        Local files are uploaded to the server automatically before opening.
+        """
+        # Auto-upload if the path doesn't exist on the server (i.e. it's a local path)
         if not os.path.exists(file_path):
-            return {
-                "error": f"File not found: {file_path}"
-            }
+            result = _upload_local_file(file_path)
+            if "error" in result:
+                return result
+            file_path = result["file_path"]
         
         # Open the presentation
         try:
