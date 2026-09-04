@@ -7,7 +7,6 @@ import os
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 import utils as ppt_utils
-from tools.file_tools import _upload_local_file
 
 
 def register_presentation_tools(app: FastMCP, presentations: Dict, get_current_presentation_id, get_template_search_directories):
@@ -93,15 +92,21 @@ def register_presentation_tools(app: FastMCP, presentations: Dict, get_current_p
     def open_presentation(file_path: str, id: Optional[str] = None) -> Dict:
         """Open an existing PowerPoint presentation from a file.
 
-        Accepts both local paths (e.g. /Users/…/deck.pptx) and server-side paths.
-        Local files are uploaded to the server automatically before opening.
+        file_path must be a server-side path (e.g. /app/pptx_files/deck.pptx).
+
+        For local files, upload them first via HTTP:
+          curl -s -F "file=@/path/to/file.pptx" http://<server-host>:8001/upload
+        The response JSON contains "file_path" — pass that value to this tool.
         """
-        # Auto-upload if the path doesn't exist on the server (i.e. it's a local path)
         if not os.path.exists(file_path):
-            result = _upload_local_file(file_path)
-            if "error" in result:
-                return result
-            file_path = result["file_path"]
+            return {
+                "error": (
+                    f"File not found on server: {file_path}. "
+                    "Upload the file first via HTTP: "
+                    f'curl -s -F "file=@{file_path}" http://<server-host>:8001/upload '
+                    "— then call open_presentation with the returned file_path."
+                )
+            }
         
         # Open the presentation
         try:

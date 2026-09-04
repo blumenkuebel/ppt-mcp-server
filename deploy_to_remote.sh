@@ -25,9 +25,9 @@ rsync -avz --delete \
   "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/"
 
 echo "==> Baue Image und starte Container ..."
-$SSH bash -s <<'REMOTE'
+$SSH bash -s <<REMOTE
   set -euo pipefail
-  cd /opt/ppt-mcp-server
+  cd ${REMOTE_DIR}
   docker compose -f docker-compose.yml up -d --build
   echo "==> Container-Status:"
   docker compose -f docker-compose.yml ps

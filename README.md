@@ -22,11 +22,14 @@ claude mcp add --scope user --transport http ppt http://127.0.0.1:8001/mcp
 
 ## File Transfer
 
-PPTX files live in `/app/pptx_files` inside the container (mapped to `/mnt/dockershare/powerpoint`).
+The server runs in Docker and **cannot access local file paths** (e.g. `/Users/…`). PPTX files must be uploaded via HTTP before they can be opened with MCP tools.
+
+Files are stored in `/app/pptx_files` inside the container (mapped to `/mnt/dockershare/powerpoint`).
 
 ```bash
-# Upload
-curl -H "X-API-Key: $KEY" -F "file=@deck.pptx" http://192.168.55.15:8001/upload
+# Upload (required before open_presentation)
+curl -s -H "X-API-Key: $KEY" -F "file=@deck.pptx" http://192.168.55.15:8001/upload
+# → returns JSON with "file_path": "/app/pptx_files/deck.pptx"
 
 # Download
 curl -H "X-API-Key: $KEY" http://192.168.55.15:8001/download/deck.pptx -o deck.pptx
@@ -34,6 +37,11 @@ curl -H "X-API-Key: $KEY" http://192.168.55.15:8001/download/deck.pptx -o deck.p
 # List files
 curl -H "X-API-Key: $KEY" http://192.168.55.15:8001/files
 ```
+
+### Workflow for agents
+
+1. Upload the local file via `curl -s -F "file=@/path/to/file.pptx" http://<server-host>:8001/upload`
+2. Use the returned `file_path` with `open_presentation(file_path="/app/pptx_files/file.pptx")`
 
 ## API Key
 
