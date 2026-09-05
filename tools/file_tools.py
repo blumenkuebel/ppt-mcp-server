@@ -92,3 +92,30 @@ def register_file_routes(app: FastMCP):
             if f.endswith(".pptx")
         ]
         return JSONResponse({"files": files})
+
+    @app.custom_route("/files/{filename}", methods=["DELETE"])
+    async def delete_file(request: Request) -> Response:
+        if not _check_api_key(request):
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+        safe_name = os.path.basename(request.path_params["filename"])
+        file_path = os.path.join(PPT_FILES_PATH, safe_name)
+
+        if not os.path.exists(file_path):
+            return JSONResponse({"error": f"File not found: {safe_name}"}, status_code=404)
+
+        os.remove(file_path)
+        return JSONResponse({"message": f"Deleted {safe_name}"})
+
+    @app.custom_route("/files", methods=["DELETE"])
+    async def delete_all_files(request: Request) -> Response:
+        if not _check_api_key(request):
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+        os.makedirs(PPT_FILES_PATH, exist_ok=True)
+        deleted = []
+        for f in os.listdir(PPT_FILES_PATH):
+            if f.endswith(".pptx"):
+                os.remove(os.path.join(PPT_FILES_PATH, f))
+                deleted.append(f)
+        return JSONResponse({"message": f"Deleted {len(deleted)} file(s)", "deleted": deleted})
