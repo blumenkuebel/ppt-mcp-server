@@ -10,11 +10,17 @@ Based on [Office-PowerPoint-MCP-Server](https://github.com/GongRzhe/Office-Power
 
 The script creates a `.venv`, installs dependencies from `requirements.txt`, and starts the server on port **8001**.
 
+## Deployment to Docker host
+
+```bash
+./deploy_to_remote.sh user
+```
+
 ## MCP Registration
 
 ```bash
 # Docker / remote
-claude mcp add --scope user --transport http ppt http://192.168.55.15:8001/mcp
+claude mcp add --scope user --transport http ppt http://<docker-host>:8001/mcp
 
 # Local
 claude mcp add --scope user --transport http ppt http://127.0.0.1:8001/mcp
@@ -28,19 +34,19 @@ Files are stored in `/app/pptx_files` inside the container (mapped to `/mnt/dock
 
 ```bash
 # Upload (required before open_presentation)
-curl -s -H "X-API-Key: $KEY" -F "file=@deck.pptx" http://192.168.55.15:8001/upload
+curl -s -H "X-API-Key: $MCP_API_KEY" -F "file=@deck.pptx" http://<docker-host>:8001/upload
 # → returns JSON with "file_path": "/app/pptx_files/deck.pptx"
 
 # Download
-curl -H "X-API-Key: $KEY" http://192.168.55.15:8001/download/deck.pptx -o deck.pptx
+curl -H "X-API-Key: $MCP_API_KEY" http://<docker-host>:8001/download/deck.pptx -o deck.pptx
 
 # List files
-curl -H "X-API-Key: $KEY" http://192.168.55.15:8001/files
+curl -H "X-API-Key: $MCP_API_KEY" http://<docker-host>:8001/files
 ```
 
 ### Workflow for agents
 
-1. Upload the local file via `curl -s -F "file=@/path/to/file.pptx" http://<server-host>:8001/upload`
+1. Upload the local file via `curl -s -H "X-API-Key: $MCP_API_KEY" -F "file=@/path/to/file.pptx" http://<docker-host>:8001/upload`
 2. Use the returned `file_path` with `open_presentation(file_path="/app/pptx_files/file.pptx")`
 
 ## API Key
